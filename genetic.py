@@ -1,10 +1,15 @@
 import random
 
 
-def fitness(target, found):
+def fitness(target, found, sym_count, length):
     if target == found:
         return 0
-    return 1 / (target - found)
+    modifier = (length - sym_count) / length
+    if modifier <= 0 or modifier > 1:
+        modifier = 1
+    ratio = 1 / (target - found)
+    #return ratio
+    return ratio * modifier
 
 
 def generate(length):
@@ -54,6 +59,7 @@ def calculate(sequence):
     total = 0
     last_was_symbol = True
     symbol = ''
+    symCount = 1
     for i in range(len(sequence)):
         # print("When symbol: ", sequence[i], " was encountered, the last sym was: ", last_was_symbol, ". The total is now: ", total)
         if sequence[i] == '':
@@ -72,16 +78,20 @@ def calculate(sequence):
         else:
             if symbol == '+':
                 total += sequence[i]
+                symCount += 2
             elif symbol == '-':
                 total -= sequence[i]
+                symCount += 2
             elif symbol == '*':
                 total *= sequence[i]
+                symCount += 2
             elif symbol == '/':
                 if sequence[i] == 0:
-                    return False
+                    return False, 0
                 total /= sequence[i]
+                symCount += 2
             last_was_symbol = False
-    return total
+    return total, symCount
 
 
 def mutate(bits, length):
@@ -121,21 +131,22 @@ def best_genome(population):
             genome[hex(key)] = value
     # print("This generations best genomes were: ", genome)
 
-
+# The starting point of the program
 def main():
-    length = 21
-    target = 1543
-    pop_size = 100
+    length = 64
+    target = 511
+    pop_size = 50
     population = {}
     final_bits = ''
     running = True
     generation = 0
     timeout = False
-
+    final_sym_count = 0
     sum = 0
     avg_count = 0
 
     nuke = length * pop_size
+    ping_avg = (nuke / 5) - 1
 
     while running:
         total_fitness = 0
@@ -150,7 +161,7 @@ def main():
             avg_count = 0
             sum = 0
 
-        if generation % ((nuke / 5) - 1) == 0 and avg_count != 0:
+        if generation % ping_avg == 0 and avg_count != 0:
             print("Current fitness avg: ", (sum / avg_count))
 
         # print(len(population))
@@ -161,19 +172,19 @@ def main():
         for key, value in population.items():
             # print("Genome is: ", hex(key))
             decoded = decode(key, length)
-            calculated = calculate(decoded)
+            calculated, sym_count = calculate(decoded)
             # print("Genome value is: ", calculated)
             if calculated == target:
                 # print(calculated)
                 running = False
                 final_bits = key
+                final_sym_count = sym_count
                 break
-            fitnessed = fitness(target, calculated)
+            fitnessed = fitness(target, calculated, sym_count, length)
             population[key] = fitnessed
             total_fitness += fitnessed
             sum += fitnessed
             avg_count += 1
-
 
         if generation > 100000:
             running = False
@@ -191,7 +202,7 @@ def main():
             bitsa = ''
             bitsb = ''
             trials = 0
-            while bitsa == bitsb and trials < 25:
+            while bitsa == bitsb and trials < 10:
                 r1 = random.uniform(0, total_fitness)
                 r2 = random.uniform(0, total_fitness)
                 bitsa = roulette(r1, population)
@@ -212,6 +223,7 @@ def main():
         print("Genetic algorithm ended without a solution as we passed 100,000 generations")
     else:
         print("Solution found with genome: ", hex(final_bits))
+        print("Solution found symbol count: ", final_sym_count)
         print("The solution was found in generation: ", generation)
 
 main()
