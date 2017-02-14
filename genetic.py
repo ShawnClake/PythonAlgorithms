@@ -21,6 +21,7 @@ def symbol_lookup(bits):
         0x0: 0,
         0x1: 1,
         0x2: 2,
+
         0x3: 3,
         0x4: 4,
         0x5: 5,
